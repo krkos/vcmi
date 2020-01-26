@@ -84,6 +84,8 @@
 		<Unit filename="api/Artifact.h" />
 		<Unit filename="api/BattleCb.cpp" />
 		<Unit filename="api/BattleCb.h" />
+		<Unit filename="api/BonusSystem.cpp" />
+		<Unit filename="api/BonusSystem.h" />
 		<Unit filename="api/Creature.cpp" />
 		<Unit filename="api/Creature.h" />
 		<Unit filename="api/Faction.cpp" />

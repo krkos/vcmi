@@ -21,7 +21,7 @@ namespace scripting
 namespace api
 {
 
-VCMI_REGISTER_CORE_SCRIPT_API(ArtifactProxy);
+VCMI_REGISTER_CORE_SCRIPT_API(ArtifactProxy, "Artifact");
 
 const std::vector<ArtifactProxy::RegType> ArtifactProxy::REGISTER =
 {
@@ -29,12 +29,19 @@ const std::vector<ArtifactProxy::RegType> ArtifactProxy::REGISTER =
 	{"getIndex", LuaCallWrapper<const Entity>::createFunctor(&Entity::getIndex)},
 	{"getJsonKey", LuaCallWrapper<const Entity>::createFunctor(&Entity::getJsonKey)},
 	{"getName", LuaCallWrapper<const Entity>::createFunctor(&Entity::getName)},
+	{"accessBonuses", LuaCallWrapper<const EntityWithBonuses<ArtifactID>>::createFunctor(&EntityWithBonuses<ArtifactID>::accessBonuses)},
 	{"getDescription", LuaCallWrapper<const Artifact>::createFunctor(&Artifact::getDescription)},
 	{"getEventText", LuaCallWrapper<const Artifact>::createFunctor(&Artifact::getEventText)},
 	{"isBig", LuaCallWrapper<const Artifact>::createFunctor(&Artifact::isBig)},
 	{"isTradable", LuaCallWrapper<const Artifact>::createFunctor(&Artifact::isTradable)},
 	{"getPrice", LuaCallWrapper<const Artifact>::createFunctor(&Artifact::getPrice)},
 };
+
+const std::vector<ArtifactProxy::CustomRegType> ArtifactProxy::REGISTER_CUSTOM =
+{
+
+};
+
 
 }
 }

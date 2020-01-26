@@ -14,7 +14,7 @@
 
 class CreatureID;
 
-class DLL_LINKAGE Creature : public EntityT<CreatureID>
+class DLL_LINKAGE Creature : public EntityWithBonuses<CreatureID>
 {
 public:
 	virtual const std::string & getPluralName() const = 0;

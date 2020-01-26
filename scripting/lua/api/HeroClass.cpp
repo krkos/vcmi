@@ -20,7 +20,7 @@ namespace scripting
 {
 namespace api
 {
-VCMI_REGISTER_CORE_SCRIPT_API(HeroClassProxy);
+VCMI_REGISTER_CORE_SCRIPT_API(HeroClassProxy, "HeroClass");
 
 const std::vector<HeroClassProxy::RegType> HeroClassProxy::REGISTER =
 {
@@ -28,6 +28,11 @@ const std::vector<HeroClassProxy::RegType> HeroClassProxy::REGISTER =
 	{"getIndex", LuaCallWrapper<const Entity>::createFunctor(&Entity::getIndex)},
 	{"getJsonKey", LuaCallWrapper<const Entity>::createFunctor(&Entity::getJsonKey)},
 	{"getName", LuaCallWrapper<const Entity>::createFunctor(&Entity::getName)},
+};
+
+const std::vector<HeroClassProxy::CustomRegType> HeroClassProxy::REGISTER_CUSTOM =
+{
+
 };
 
 }

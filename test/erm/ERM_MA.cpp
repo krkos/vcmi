@@ -31,6 +31,8 @@ public:
 	CreatureServiceMock creatureService;
 	CreatureMock oldCreature;
 
+	BonusBearerMock creatureBonuses;
+
 	std::vector<EntityChanges> actualChanges;
 
 	void onCommit(CPackForClient * pack)
@@ -74,9 +76,25 @@ TEST_F(ERM_MA, Example)
 	const int32_t LEVEL = 7;
 	const int32_t FACTION = 35;
 
+	creatureBonuses.addNewBonus(std::make_shared<Bonus>(Bonus::PERMANENT, Bonus::DESTRUCTION, Bonus::CREATURE_ABILITY, 0, 0));
+
 	const int32_t FLAG_MASK = 394370;
+	const int32_t FLAG_MASK_NEW = 397443;
 
 	static_assert(FLAG_MASK == (1 << 1 | 1 << 7 | 1 << 10 | 1 << 17 | 1 << 18), "Wrong flag mask meaning");
+	static_assert(FLAG_MASK_NEW == (1 << 0 | 1 << 1 | 1 << 7 | 1 << 12 | 1 << 17 | 1 << 18), "Wrong flag mask meaning");
+
+	creatureBonuses.addNewBonus(std::make_shared<Bonus>(Bonus::PERMANENT, Bonus::FLYING, Bonus::CREATURE_ABILITY, 0, 0));
+	creatureBonuses.addNewBonus(std::make_shared<Bonus>(Bonus::PERMANENT, Bonus::KING1, Bonus::CREATURE_ABILITY, 0, 0));
+
+	std::shared_ptr<Bonus> removed = std::make_shared<Bonus>(Bonus::PERMANENT, Bonus::MIND_IMMUNITY, Bonus::CREATURE_ABILITY, 0, 0);
+
+	creatureBonuses.addNewBonus(removed);
+	creatureBonuses.addNewBonus(std::make_shared<Bonus>(Bonus::PERMANENT, Bonus::NO_MORALE, Bonus::CREATURE_ABILITY, 0, 0));
+	creatureBonuses.addNewBonus(std::make_shared<Bonus>(Bonus::PERMANENT, Bonus::UNDEAD, Bonus::CREATURE_ABILITY, 0, 0));
+
+	std::shared_ptr<Bonus> added = std::make_shared<Bonus>(Bonus::PERMANENT, Bonus::NO_MELEE_PENALTY, Bonus::CREATURE_ABILITY, 0, 0);
+
 
 	EXPECT_CALL(oldCreature, getCost(Eq(6))).WillOnce(Return(COST));
 	EXPECT_CALL(oldCreature, getBaseAttack()).WillOnce(Return(ATTACK));
@@ -95,14 +113,16 @@ TEST_F(ERM_MA, Example)
 	EXPECT_CALL(oldCreature, getLevel()).WillOnce(Return(LEVEL));
 	EXPECT_CALL(oldCreature, getFactionIndex()).WillOnce(Return(FACTION));
 
-	EXPECT_CALL(oldCreature, isDoubleWide()).WillOnce(Return(false));
+	EXPECT_CALL(oldCreature, isDoubleWide()).WillRepeatedly(Return(false));
+
+	EXPECT_CALL(oldCreature, accessBonuses()).Times(AtLeast(1)).WillRepeatedly(Return(&creatureBonuses));
 
 	EXPECT_CALL(serverMock, apply(Matcher<CPackForClient *>(_))).Times(AtLeast(1)).WillRepeatedly(Invoke(this, &ERM_MA::onCommit));
 
 	std::stringstream source;
 	source << "VERM" << std::endl;
 	source << "!#MA:C68/6/?v1 A68/?v2 D68/?v3 P68/?v4 S68/?v5 M68/?v6 E68/?v7 N68/?v8 G68/?v9 B68/?v10 R68/?v11 I68/?v12 F68/?v13 L68/?v14 O68/?v15 X68/?v16;" << std::endl;
-	source << "!#MA:C68/6/750 A68/17 D68/15 P68/50 S68/9 M68/12 E68/20 N68/0 G68/1 B68/2 R68/0 I68/3388 F68/2420 L68/6 O68/4 X68/394371;" << std::endl;
+	source << "!#MA:C68/6/750 A68/17 D68/15 P68/50 S68/9 M68/12 E68/20 N68/0 G68/1 B68/2 R68/0 I68/3388 F68/2420 L68/6 O68/4 X68/397443;" << std::endl;
 
 	{
 		loadScript(VLC->scriptHandler->erm, source.str());
@@ -160,6 +180,15 @@ TEST_F(ERM_MA, Example)
 	config["fightValue"].Integer() = 2420;
 	config["level"].Integer() = 6;
 	config["faction"].Integer() = 4;
+	config["doubleWide"].Bool() = true;
+
+	JsonNode & toAdd = expectedMerged["bonuses"]["toAdd"];
+
+	toAdd.Vector().push_back(added->toJsonNode());
+
+	JsonNode & toRemove = expectedMerged["bonuses"]["toRemove"];
+
+	toRemove.Vector().push_back(removed->toJsonNode());
 
 	{
 		JsonComparer c(false);

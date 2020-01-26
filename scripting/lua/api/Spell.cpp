@@ -22,7 +22,7 @@ namespace api
 {
 using ::spells::Spell;
 
-VCMI_REGISTER_CORE_SCRIPT_API(SpellProxy);
+VCMI_REGISTER_CORE_SCRIPT_API(SpellProxy, "Spell");
 
 //TODO:calculateDamage,forEachSchool
 
@@ -48,6 +48,10 @@ const std::vector<SpellProxy::RegType> SpellProxy::REGISTER =
 	{"getLevelDescription", LuaCallWrapper<const Spell>::createFunctor(&Spell::getLevelDescription)},
 };
 
+const std::vector<SpellProxy::CustomRegType> SpellProxy::REGISTER_CUSTOM =
+{
+
+};
 
 }
 }

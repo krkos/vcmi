@@ -100,4 +100,74 @@ TEST_F(CCreatureTest, JsonUpdate)
 	EXPECT_TRUE(subject->isDoubleWide());
 }
 
+TEST_F(CCreatureTest, JsonAddBonus)
+{
+	JsonNode data(JsonNode::JsonType::DATA_STRUCT);
+
+	std::shared_ptr<Bonus> b = std::make_shared<Bonus>(Bonus::PERMANENT, Bonus::BLOCKS_RETALIATION, Bonus::CREATURE_ABILITY, 17, 42, 43, Bonus::BASE_NUMBER);
+
+	JsonNode & toAdd = data["bonuses"]["toAdd"];
+
+	toAdd.Vector().push_back(b->toJsonNode());
+
+	subject->updateFrom(data);
+
+	auto selector = [](const Bonus * bonus)
+	{
+		return (bonus->duration == Bonus::PERMANENT)
+			&& (bonus->type == Bonus::BLOCKS_RETALIATION)
+			&& (bonus->source == Bonus::CREATURE_ABILITY)
+			&& (bonus->val == 17)
+			&& (bonus->sid == 42)
+			&& (bonus->subtype == 43)
+			&& (bonus->valType == Bonus::BASE_NUMBER);
+	};
+
+	EXPECT_TRUE(subject->hasBonus(selector));
+}
+
+TEST_F(CCreatureTest, JsonRemoveBonus)
+{
+	JsonNode data(JsonNode::JsonType::DATA_STRUCT);
+
+	std::shared_ptr<Bonus> b1 = std::make_shared<Bonus>(Bonus::PERMANENT, Bonus::BLOCKS_RETALIATION, Bonus::CREATURE_ABILITY, 17, 42, 43, Bonus::BASE_NUMBER);
+	subject->addNewBonus(b1);
+
+	std::shared_ptr<Bonus> b2 = std::make_shared<Bonus>(Bonus::PERMANENT, Bonus::BLOCKS_RETALIATION, Bonus::CREATURE_ABILITY, 18, 42, 43, Bonus::BASE_NUMBER);
+	subject->addNewBonus(b2);
+
+
+	JsonNode & toRemove = data["bonuses"]["toRemove"];
+
+	toRemove.Vector().push_back(b2->toJsonNode());
+
+	subject->updateFrom(data);
+
+	auto selector1 = [](const Bonus * bonus)
+	{
+		return (bonus->duration == Bonus::PERMANENT)
+			&& (bonus->type == Bonus::BLOCKS_RETALIATION)
+			&& (bonus->source == Bonus::CREATURE_ABILITY)
+			&& (bonus->val == 17)
+			&& (bonus->sid == 42)
+			&& (bonus->subtype == 43)
+			&& (bonus->valType == Bonus::BASE_NUMBER);
+	};
+
+	EXPECT_TRUE(subject->hasBonus(selector1));
+
+	auto selector2 = [](const Bonus * bonus)
+	{
+		return (bonus->duration == Bonus::PERMANENT)
+			&& (bonus->type == Bonus::BLOCKS_RETALIATION)
+			&& (bonus->source == Bonus::CREATURE_ABILITY)
+			&& (bonus->val == 18)
+			&& (bonus->sid == 42)
+			&& (bonus->subtype == 43)
+			&& (bonus->valType == Bonus::BASE_NUMBER);
+	};
+
+	EXPECT_FALSE(subject->hasBonus(selector2));
+}
+
 }

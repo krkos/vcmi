@@ -11,6 +11,7 @@
 #include "JsonUpdater.h"
 
 #include "../JsonNode.h"
+#include "../HeroBonus.h"
 
 JsonUpdater::JsonUpdater(const IInstanceResolver * instanceResolver_, const JsonNode & root_)
 	: JsonTreeSerializer(instanceResolver_, &root_, false, true)
@@ -232,6 +233,49 @@ void JsonUpdater::serializeRaw(const std::string & fieldName, JsonNode & value, 
 	const JsonNode & data = currentObject->operator[](fieldName);
 	if(data.getType() != JsonNode::JsonType::DATA_NULL)
 		value = data;
+}
+
+void JsonUpdater::serializeBonuses(const std::string & fieldName, CBonusSystemNode * value)
+{
+	const JsonNode & data = currentObject->operator[](fieldName);
+
+	const JsonNode & toAdd = data["toAdd"];
+
+	if(toAdd.getType() == JsonNode::JsonType::DATA_VECTOR)
+	{
+		for(auto & item : toAdd.Vector())
+		{
+			auto b = JsonUtils::parseBonus(item);
+			value->addNewBonus(b);
+		}
+	}
+
+	const JsonNode & toRemove = data["toRemove"];
+
+	if(toRemove.getType() == JsonNode::JsonType::DATA_VECTOR)
+	{
+		for(auto & item : toRemove.Vector())
+		{
+			auto mask = JsonUtils::parseBonus(item);
+
+			auto selector = [mask](const Bonus * b)
+			{
+				//compare everything but turnsRemain, limiter and propagator
+				return mask->duration == b->duration
+				&& mask->type == b->type
+				&& mask->subtype == b->subtype
+				&& mask->source == b->source
+				&& mask->val == b->val
+				&& mask->sid == b->sid
+				&& mask->valType == b->valType
+				&& mask->additionalInfo == b->additionalInfo
+				&& mask->effectRange == b->effectRange
+				&& mask->description == b->description;
+			};
+
+			value->removeBonuses(selector);
+		}
+	}
 }
 
 void JsonUpdater::readLICPart(const JsonNode & part, const TDecoder & decoder, const bool val, std::vector<bool> & value)

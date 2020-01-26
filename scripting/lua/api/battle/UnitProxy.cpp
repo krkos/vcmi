@@ -53,6 +53,10 @@ const std::vector<UnitProxy::RegType> UnitProxy::REGISTER =
 	}
 };
 
+const std::vector<UnitProxy::CustomRegType> UnitProxy::REGISTER_CUSTOM =
+{
+
+};
 
 }
 }

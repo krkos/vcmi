@@ -21,7 +21,7 @@ namespace scripting
 namespace api
 {
 
-VCMI_REGISTER_CORE_SCRIPT_API(FactionProxy);
+VCMI_REGISTER_CORE_SCRIPT_API(FactionProxy, "Faction");
 
 const std::vector<FactionProxy::RegType> FactionProxy::REGISTER =
 {
@@ -32,6 +32,10 @@ const std::vector<FactionProxy::RegType> FactionProxy::REGISTER =
 	{"hasTown", LuaCallWrapper<const Faction>::createFunctor(&Faction::hasTown)},
 };
 
+const std::vector<FactionProxy::CustomRegType> FactionProxy::REGISTER_CUSTOM =
+{
+
+};
 
 }
 }

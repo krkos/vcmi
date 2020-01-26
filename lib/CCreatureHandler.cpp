@@ -52,6 +52,11 @@ CreatureID CCreature::getId() const
 	return idNumber;
 }
 
+const IBonusBearer * CCreature::accessBonuses() const
+{
+	return this;
+}
+
 uint32_t CCreature::getMaxHealth() const
 {
 	return CBonusSystemNode::MaxHealth();
@@ -284,34 +289,42 @@ bool CCreature::isItNativeTerrain(int terrain) const
 
 void CCreature::updateFrom(const JsonNode & data)
 {
-	const JsonNode & node = data["config"];
+	JsonUpdater handler(nullptr, data);
 
-	JsonUpdater handler(nullptr, node);
-	serializeJson(handler);
+	{
+		auto configScope = handler.enterStruct("config");
 
-	if(!node["hitPoints"].isNull())
-		addBonus(node["hitPoints"].Integer(), Bonus::STACK_HEALTH);
+		const JsonNode & configNode = handler.getCurrent();
 
-	if(!node["speed"].isNull())
-		addBonus(node["speed"].Integer(), Bonus::STACKS_SPEED);
+		serializeJson(handler);
 
-	if(!node["attack"].isNull())
-		addBonus(node["attack"].Integer(), Bonus::PRIMARY_SKILL, PrimarySkill::ATTACK);
+		if(!configNode["hitPoints"].isNull())
+			addBonus(configNode["hitPoints"].Integer(), Bonus::STACK_HEALTH);
 
-	if(!node["defense"].isNull())
-		addBonus(node["defense"].Integer(), Bonus::PRIMARY_SKILL, PrimarySkill::DEFENSE);
+		if(!configNode["speed"].isNull())
+			addBonus(configNode["speed"].Integer(), Bonus::STACKS_SPEED);
 
-	if(!node["damage"]["min"].isNull())
-		addBonus(node["damage"]["min"].Integer(), Bonus::CREATURE_DAMAGE, 1);
+		if(!configNode["attack"].isNull())
+			addBonus(configNode["attack"].Integer(), Bonus::PRIMARY_SKILL, PrimarySkill::ATTACK);
 
-	if(!node["damage"]["max"].isNull())
-		addBonus(node["damage"]["max"].Integer(), Bonus::CREATURE_DAMAGE, 2);
+		if(!configNode["defense"].isNull())
+			addBonus(configNode["defense"].Integer(), Bonus::PRIMARY_SKILL, PrimarySkill::DEFENSE);
 
-	if(!node["shots"].isNull())
-		addBonus(node["shots"].Integer(), Bonus::SHOTS);
+		if(!configNode["damage"]["min"].isNull())
+			addBonus(configNode["damage"]["min"].Integer(), Bonus::CREATURE_DAMAGE, 1);
 
-	if(!node["spellPoints"].isNull())
-		addBonus(node["spellPoints"].Integer(), Bonus::CASTS);
+		if(!configNode["damage"]["max"].isNull())
+			addBonus(configNode["damage"]["max"].Integer(), Bonus::CREATURE_DAMAGE, 2);
+
+		if(!configNode["shots"].isNull())
+			addBonus(configNode["shots"].Integer(), Bonus::SHOTS);
+
+		if(!configNode["spellPoints"].isNull())
+			addBonus(configNode["spellPoints"].Integer(), Bonus::CASTS);
+	}
+
+
+	handler.serializeBonuses("bonuses", this);
 }
 
 void CCreature::serializeJson(JsonSerializeFormat & handler)

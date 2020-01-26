@@ -24,6 +24,7 @@ class SpellProxy : public OpaqueWrapper<const ::spells::Spell, SpellProxy>
 public:
 	using Wrapper = OpaqueWrapper<const ::spells::Spell, SpellProxy>;
 	static const std::vector<typename Wrapper::RegType> REGISTER;
+	static const std::vector<typename Wrapper::CustomRegType> REGISTER_CUSTOM;
 };
 
 }

@@ -79,6 +79,11 @@ ArtifactID CArtifact::getId() const
 	return id;
 }
 
+const IBonusBearer * CArtifact::accessBonuses() const
+{
+	return this;
+}
+
 const std::string & CArtifact::getDescription() const
 {
 	return description;

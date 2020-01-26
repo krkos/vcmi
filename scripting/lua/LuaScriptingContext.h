@@ -48,7 +48,6 @@ public:
 
 	JsonNode saveState() override;
 
-	void push(const JsonNode & value);
 	void pop(JsonNode & value);
 
 	void popAll();

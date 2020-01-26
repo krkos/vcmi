@@ -53,11 +53,13 @@ LuaContext::LuaContext(const Script * source, const Environment * env_)
 
 	cleanupGlobals();
 
-	registerCore();
+	popAll();
 
-	int top = lua_gettop(L);
-	if(top != 0)
-		logger->error("Lua stack at %s unbalanced: %d", BOOST_CURRENT_FUNCTION, top);
+	lua_newtable(L);
+	modules = std::make_shared<LuaReference>(L);
+	popAll();
+
+	registerCore();
 
 	popAll();
 
@@ -75,10 +77,6 @@ LuaContext::LuaContext(const Script * source, const Environment * env_)
 	S.push(env->services());
 	lua_setglobal(L, "SERVICES");
 
-	popAll();
-
-	lua_newtable(L);
-	modules = std::make_shared<LuaReference>(L);
 	popAll();
 }
 
@@ -187,16 +185,18 @@ int LuaContext::errorRetVoid(const std::string & message)
 
 JsonNode LuaContext::callGlobal(const std::string & name, const JsonNode & parameters)
 {
+	LuaStack S(L);
+
 	lua_getglobal(L, name.c_str());
 
-	if(!lua_isfunction(L, -1))
+	if(!S.isFunction(-1))
 	{
 		boost::format fmt("%s is not a function");
 		fmt % name;
 
 		logger->error(fmt.str());
 
-		popAll();
+		S.clear();
 
 		return JsonNode();
 	}
@@ -204,9 +204,7 @@ JsonNode LuaContext::callGlobal(const std::string & name, const JsonNode & param
 	int argc = parameters.Vector().size();
 
 	for(int idx = 0; idx < argc; idx++)
-	{
-		push(parameters.Vector()[idx]);
-	}
+		S.push(parameters.Vector()[idx]);
 
 	if(lua_pcall(L, argc, 1, 0))
 	{
@@ -217,7 +215,7 @@ JsonNode LuaContext::callGlobal(const std::string & name, const JsonNode & param
 
 		logger->error(fmt.str());
 
-		popAll();
+		S.clear();
 
 		return JsonNode();
 	}
@@ -225,6 +223,7 @@ JsonNode LuaContext::callGlobal(const std::string & name, const JsonNode & param
 	JsonNode ret;
 
 	pop(ret);
+	S.balance();
 
 	return ret;
 }
@@ -313,7 +312,7 @@ void LuaContext::setGlobal(const std::string & name, double value)
 void LuaContext::setGlobal(const std::string & name, const JsonNode & value)
 {
 	LuaStack S(L);
-	push(value);
+	S.push(value);
 	lua_setglobal(L, name.c_str());
 	S.balance();
 }
@@ -323,59 +322,6 @@ JsonNode LuaContext::saveState()
 	JsonNode data;
 	getGlobal(STATE_FIELD, data);
 	return std::move(data);
-}
-
-void LuaContext::push(const JsonNode & value)
-{
-	switch(value.getType())
-	{
-	case JsonNode::JsonType::DATA_BOOL:
-		{
-			lua_pushboolean(L, value.Bool());
-		}
-		break;
-	case JsonNode::JsonType::DATA_FLOAT:
-		{
-			lua_pushnumber(L, value.Float());
-		}
-		break;
-	case JsonNode::JsonType::DATA_INTEGER:
-		{
-			lua_pushinteger(L, value.Integer());
-		}
-		break;
-	case JsonNode::JsonType::DATA_STRUCT:
-		{
-			lua_newtable(L);
-			for(auto & keyValue : value.Struct())
-			{
-				lua_pushlstring(L, keyValue.first.c_str(), keyValue.first.size());
-
-				push(keyValue.second);
-
-				lua_settable(L, -3);
-			}
-		}
-		break;
-	case JsonNode::JsonType::DATA_STRING:
-		push(value.String());
-		break;
-	case JsonNode::JsonType::DATA_VECTOR:
-		{
-			lua_newtable(L);
-			for(int idx = 0; idx < value.Vector().size(); idx++)
-			{
-				lua_pushinteger(L, idx + 1);
-				push(value.Vector()[idx]);
-				lua_settable(L, -3);
-			}
-		}
-		break;
-
-	default:
-		lua_pushnil(L);
-		break;
-	}
 }
 
 void LuaContext::pop(JsonNode & value)
@@ -479,7 +425,13 @@ void LuaContext::registerCore()
 
 	for(auto & registar : api::Registry::get()->getCoreData())
 	{
-		registar->perform(L, api::TypeRegistry::get());
+		registar.second->pushMetatable(L); //table
+
+		modules->push(); //table modules
+		push(registar.first); //table modules name
+		lua_pushvalue(L, -3); //table modules name table
+		lua_rawset(L, -3);
+
 		popAll();
 	}
 }
@@ -526,8 +478,6 @@ int LuaContext::loadModule()
 	if(resourceName.empty())
 		return errorRetVoid("Module name is empty");
 
-	popAll();
-
 	auto temp = vstd::split(resourceName, ":");
 
 	std::string scope;
@@ -552,7 +502,7 @@ int LuaContext::loadModule()
 			return errorRetVoid("Module not found: "+modulePath);
 		}
 
-		registar->perform(L, api::TypeRegistry::get());
+		registar->pushMetatable(L);
 	}
 	else if(scope == "core")
 	{
@@ -594,11 +544,18 @@ int LuaContext::loadModule()
 		return errorRetVoid("No access to scope "+scope);
 	}
 
-	modules->push();
-	lua_pushvalue(L, -2);
-	lua_rawset(L, -2);
+	modules->push(); //name table modules
+	lua_pushvalue(L, 1);//name table modules name
 
-	lua_settop(L, 1);
+	if(!lua_isstring(L, -1))
+		return errorRetVoid("Module name corrupted");
+
+	lua_pushvalue(L, -3);//name table modules name table
+	lua_rawset(L, -3);//name table modules
+	lua_pop(L, 1);//name table
+
+	lua_replace(L, 1);//table table
+	lua_settop(L, 1);//table
 	return 1;
 }
 

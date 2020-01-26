@@ -21,7 +21,7 @@ namespace scripting
 namespace api
 {
 
-VCMI_REGISTER_CORE_SCRIPT_API(CreatureProxy);
+VCMI_REGISTER_CORE_SCRIPT_API(CreatureProxy, "Creature");
 
 const std::vector<CreatureProxy::RegType> CreatureProxy::REGISTER =
 {
@@ -29,6 +29,8 @@ const std::vector<CreatureProxy::RegType> CreatureProxy::REGISTER =
 	{"getIndex", LuaCallWrapper<const Entity>::createFunctor(&Entity::getIndex)},
 	{"getJsonKey", LuaCallWrapper<const Entity>::createFunctor(&Entity::getJsonKey)},
 	{"getName", LuaCallWrapper<const Entity>::createFunctor(&Entity::getName)},
+	{"accessBonuses", LuaCallWrapper<const EntityWithBonuses<CreatureID>>::createFunctor(&EntityWithBonuses<CreatureID>::accessBonuses)},
+
 	{"getMaxHealth", LuaCallWrapper<const Creature>::createFunctor(&Creature::getMaxHealth)},
 	{"getPluralName", LuaCallWrapper<const Creature>::createFunctor(&Creature::getPluralName)},
 	{"getSingularName", LuaCallWrapper<const Creature>::createFunctor(&Creature::getSingularName)},
@@ -53,6 +55,11 @@ const std::vector<CreatureProxy::RegType> CreatureProxy::REGISTER =
 
 	{"getCost", LuaCallWrapper<const Creature>::createFunctor(&Creature::getCost)},
 	{"isDoubleWide", LuaCallWrapper<const Creature>::createFunctor(&Creature::isDoubleWide)},
+};
+
+const std::vector<CreatureProxy::CustomRegType> CreatureProxy::REGISTER_CUSTOM =
+{
+
 };
 
 }

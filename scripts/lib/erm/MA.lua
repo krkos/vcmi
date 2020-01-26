@@ -1,6 +1,12 @@
 local logError = logError
+local bit = bit
+
 local ReceiverBase = require("core:erm.ReceiverBase")
 local EntitiesChanged = require("netpacks.EntitiesChanged")
+local Bonus = require("Bonus")
+local BonusBearer = require("BonusBearer")
+local BonusList = require("BonusList")
+
 
 local CREATURE = 3
 
@@ -97,10 +103,130 @@ function MA:U(x, creatureIndex, upgradeIndex)
 	logError("!!MA:U is not implemented")
 end
 
+local FLAG_NAMES =
+{
+	--[1] = "doubleWide", --0
+	[2] = "FLYING", --1
+	[4] = "SHOOTER", --2
+	[8] = "TWO_HEX_ATTACK_BREATH", --3
+	-- [16] = "alive", --4
+	[32] = "CATAPULT", --5
+	[64] = "SIEGE_WEAPON", --6
+	[128] = "KING1", --7
+	[256] = "KING2", --8
+	[512] = "KING3", --9
+	[1024] = "MIND_IMMUNITY", --10
+	--[2048] = "laser shot", --11
+	[4096] = "NO_MELEE_PENALTY", --12
+	-- [8192] - unused --13
+	[16384] = "FIRE_IMMUNITY", --14
+	[32768] = "ADDITIONAL_ATTACK", -- val=1 --15
+	[65536] = "NO_RETALIATION", --16
+	[131072] = "NO_MORALE", --17
+	[262144] = "UNDEAD", --18
+	[524288] = "ATTACKS_ALL_ADJACENT", --19
+	 -- [1048576] - AOE spell-like attack --20
+	 -- [2097152] - war machine? --21
+	 -- [4194304] = "summoned", --22
+	 -- [8388608] = "cloned", --23
+}
+
+local FLAGS = {}
+
+for k, v in pairs(FLAG_NAMES) do
+	local bonusType = Bonus[v]
+	assert(bonusType ~= nil, "Invalid Bonus type: "..v)
+	FLAGS[k] = bonusType
+end
+
+local FLAGS_REV = {}
+
+for mask, bonusType in pairs(FLAGS) do
+	FLAGS_REV[bonusType] = mask
+end
 
 function MA:X(x, creatureIndex, flagsMask)
-	logError("!!MA:X is not implemented")
-	return
+	local creatureIndex = checkCreatureIndex(creatureIndex)
+	local creature = creatureByIndex(creatureIndex)
+	local creatureBonuses = creature:accessBonuses()
+	local all = creatureBonuses:getBonuses()
+
+	local currentMask = 0
+
+	local toRemove = {}
+
+	do
+		local idx = 1
+		local bonus = all[idx]
+
+		while bonus do
+			local bonusType = bonus:getType()
+			local mask = FLAGS_REV[bonusType]
+
+			if mask ~= nil then
+				if flagsMask ~= nil then
+					if bit.band(mask, flagsMask) == 0 then
+						table.insert(toRemove, bonus:toJsonNode())
+					end
+				end
+				currentMask = bit.bor(currentMask, mask)
+			end
+
+
+			idx = idx + 1
+			bonus = all[idx]
+		end
+	end
+
+	if flagsMask == nil then
+		local ret = currentMask
+
+		if creature:isDoubleWide() then
+			ret = bit.bor(ret, 1)
+		end
+
+		return nil, ret
+	else
+		flagsMask = tonumber(flagsMask)
+
+		local hasChanges = false
+		local packData = {config = {}}
+
+		local reqDoubleWide = bit.band(flagsMask, 1) > 0
+
+		if reqDoubleWide ~= creature:isDoubleWide() then
+			packData.config.doubleWide, hasChanges = reqDoubleWide, true
+		end
+
+		local toAdd = {}
+
+		for mask, name in pairs(FLAG_NAMES) do
+			if (bit.band(currentMask, mask) == 0) and (bit.band(flagsMask, mask) ~= 0)  then
+				local bonus =
+				{
+					duration = {[1] = "PERMANENT"},
+					source = "CREATURE_ABILITY",
+					type = name
+				}
+
+				--special case
+				if name == "ADDITIONAL_ATTACK" then
+					bonus.val = 1
+				end
+
+				table.insert(toAdd, bonus)
+			end
+		end
+
+
+		if hasChanges then
+			packData.bonuses = {toAdd = toAdd, toRemove = toRemove}
+			sendChanges(creatureIndex, packData)
+		end
+
+
+	end
+
 end
 
 return MA

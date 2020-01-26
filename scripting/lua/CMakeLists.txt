@@ -22,6 +22,7 @@ set(lib_SRCS
 
 		api/Artifact.cpp
 		api/BattleCb.cpp
+		api/BonusSystem.cpp
 		api/Creature.cpp
 		api/Faction.cpp
 		api/GameCb.cpp

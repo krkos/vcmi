@@ -140,6 +140,11 @@ namespace ERMConverter
 		Converter(std::ostream * out_)
 			: out(out_)
 		{}
+	protected:
+		void putLine(const std::string & line) const
+		{
+			(*out) << line << std::endl;
+		}
 	};
 
 	struct GetBodyOption : public boost::static_visitor<std::string>
@@ -283,21 +288,24 @@ namespace ERMConverter
 
 		void operator()(TNormalBodyOption const & trig) const
 		{
-			std::string params;
+//			std::string params;
 			std::string outParams;
 			std::string inParams;
 
-			for(auto iter = std::begin(identifiers); iter != std::end(identifiers); ++iter)
-			{
-				params += ", ";
-				params += *iter;
-			}
+//			for(auto iter = std::begin(identifiers); iter != std::end(identifiers); ++iter)
+//			{
+//				params += ", ";
+//				params += *iter;
+//			}
+
+			bool hasOutput = false;
 
 			{
 				std::vector<ParamIO> optionParams;
 
 				for(auto & p : trig.params)
 					optionParams.push_back(boost::apply_visitor(BodyOption(), p));
+
 
 				for(auto & p : optionParams)
 				{
@@ -313,6 +321,8 @@ namespace ERMConverter
 					}
 					else
 					{
+						hasOutput = true;
+
 						if(outParams.empty())
 						{
 							outParams = p.name;
@@ -328,15 +338,24 @@ namespace ERMConverter
 				}
 			}
 
-			boost::format callFormat("%s = ERM.%s(x%s):%s(x%s)");
+			boost::format callFormat;
 
-			callFormat % outParams;
+			if(hasOutput)
+			{
+				callFormat.parse("%s = %s:%s(x%s)");
+				callFormat % outParams;
+			}
+			else
+			{
+				callFormat.parse("%s:%s(x%s)");
+			}
+
 			callFormat % name;
-			callFormat % params;
+			//callFormat % params;
 			callFormat % trig.optionCode;
 			callFormat % inParams;
 
-			(*out) << callFormat.str() << std::endl;
+			putLine(callFormat.str());
 		}
 	};
 
@@ -373,8 +392,7 @@ namespace ERMConverter
 
 			boost::format fmt("%s = %s %s(%s, %s)");
 			fmt % var % opcode % var % rhs;
-
-			(*out) << fmt.str() << std::endl;
+			putLine(fmt.str());
 		}
 
 		void operator()(TVRArithmetic const & trig) const
@@ -401,7 +419,7 @@ namespace ERMConverter
 
 			boost::format fmt("%s = %s %s %s");
 			fmt % var %  var % opcode % rhs;
-			(*out) << fmt.str() << std::endl;
+			putLine(fmt.str());
 		}
 
 		void operator()(TNormalBodyOption const & trig) const
@@ -534,7 +552,26 @@ namespace ERMConverter
 						identifiers.push_back(boost::apply_visitor(LVL1Iexp(), id));
 				}
 
+				(*out) << "do" << std::endl;
+
+				std::string params;
+
+				for(auto iter = std::begin(identifiers); iter != std::end(identifiers); ++iter)
+				{
+					params += ", ";
+					params += *iter;
+				}
+
+				boost::format fmt("local %s = ERM.%s(x%s)");
+				fmt % name;
+				fmt % name;
+				fmt % params;
+
+				putLine(fmt.str());
+
 				performBody(body, Receiver(out, name, identifiers));
+
+				(*out) << "end" << std::endl;
 			}
 		}
 

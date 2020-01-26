@@ -36,6 +36,11 @@ const std::vector<EntitiesChangedProxy::RegType> EntitiesChangedProxy::REGISTER 
 	},
 };
 
+const std::vector<EntitiesChangedProxy::CustomRegType> EntitiesChangedProxy::REGISTER_CUSTOM =
+{
+	{"new", &Wrapper::constructor, true}
+};
+
 int EntitiesChangedProxy::update(lua_State * L, std::shared_ptr<EntitiesChanged> object)
 {
 	LuaStack S(L);

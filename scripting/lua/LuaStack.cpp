@@ -17,19 +17,10 @@ namespace scripting
 {
 
 LuaStack::LuaStack(lua_State * L_)
-	: L(L_),
-	typeRegistry(api::TypeRegistry::get())
+	: L(L_)
 {
 	initialTop = lua_gettop(L);
 }
-
-LuaStack::LuaStack(lua_State * L_, api::TypeRegistry * typeRegistry_)
-	: L(L_),
-	typeRegistry(typeRegistry_)
-{
-	initialTop = lua_gettop(L);
-}
-
 
 void LuaStack::balance()
 {
@@ -69,6 +60,57 @@ void LuaStack::push(const char * value)
 void LuaStack::push(const std::string & value)
 {
 	lua_pushlstring(L, value.c_str(), value.size());
+}
+
+void LuaStack::push(const JsonNode & value)
+{
+	switch(value.getType())
+	{
+	case JsonNode::JsonType::DATA_BOOL:
+		{
+			push(value.Bool());
+		}
+		break;
+	case JsonNode::JsonType::DATA_FLOAT:
+		{
+			lua_pushnumber(L, value.Float());
+		}
+		break;
+	case JsonNode::JsonType::DATA_INTEGER:
+		{
+			pushInteger(value.Integer());
+		}
+		break;
+	case JsonNode::JsonType::DATA_STRUCT:
+		{
+			lua_newtable(L);
+			for(auto & keyValue : value.Struct())
+			{
+				push(keyValue.first);
+				push(keyValue.second);
+				lua_rawset(L, -3);
+			}
+		}
+		break;
+	case JsonNode::JsonType::DATA_STRING:
+		push(value.String());
+		break;
+	case JsonNode::JsonType::DATA_VECTOR:
+		{
+			lua_newtable(L);
+			for(int idx = 0; idx < value.Vector().size(); idx++)
+			{
+				pushInteger(idx + 1);
+				push(value.Vector()[idx]);
+				lua_rawset(L, -3);
+			}
+		}
+		break;
+
+	default:
+		pushNil();
+		break;
+	}
 }
 
 bool LuaStack::tryGet(int position, bool & value)
@@ -193,5 +235,11 @@ int LuaStack::retVoid()
 	clear();
 	return 0;
 }
+
+int LuaStack::retPushed()
+{
+	return lua_gettop(L);
+}
+
 
 }

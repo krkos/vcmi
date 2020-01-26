@@ -11,6 +11,8 @@
 
 #include  "JsonTreeSerializer.h"
 
+class CBonusSystemNode;
+
 class DLL_LINKAGE JsonUpdater: public JsonTreeSerializer<const JsonNode *>
 {
 public:
@@ -22,6 +24,8 @@ public:
 	void serializeString(const std::string & fieldName, std::string & value) override;
 
 	void serializeRaw(const std::string & fieldName, JsonNode & value, const boost::optional<const JsonNode &> defaultValue) override;
+
+	void serializeBonuses(const std::string & fieldName, CBonusSystemNode * value);
 
 protected:
 	void serializeInternal(const std::string & fieldName, boost::logic::tribool & value) override;

@@ -20,7 +20,7 @@ namespace scripting
 {
 namespace api
 {
-VCMI_REGISTER_CORE_SCRIPT_API(SkillProxy);
+VCMI_REGISTER_CORE_SCRIPT_API(SkillProxy, "Skill");
 
 const std::vector<SkillProxy::RegType> SkillProxy::REGISTER =
 {
@@ -28,6 +28,11 @@ const std::vector<SkillProxy::RegType> SkillProxy::REGISTER =
 	{"getIndex", LuaCallWrapper<const Entity>::createFunctor(&Entity::getIndex)},
 	{"getJsonKey", LuaCallWrapper<const Entity>::createFunctor(&Entity::getJsonKey)},
 	{"getName", LuaCallWrapper<const Entity>::createFunctor(&Entity::getName)},
+};
+
+const std::vector<SkillProxy::CustomRegType> SkillProxy::REGISTER_CUSTOM =
+{
+
 };
 
 }
